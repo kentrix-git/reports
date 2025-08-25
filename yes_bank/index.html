@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yes Bank - Catchment vs Footfall Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --yes-blue: #004C8F;
+            --yes-red: #EE2737;
+            --yes-white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            --dark-gray: #333333;
+            --border-gray: #E0E0E0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-hover: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--dark-gray);
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--yes-blue) 0%, #0066CC 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo-container {
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .logo-svg {
+            width: 120px;
+            height: 40px;
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: white;
+            padding: 0;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tabs-container {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            color: var(--dark-gray);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: var(--light-gray);
+        }
+
+        .tab-button.active {
+            color: var(--yes-blue);
+            border-bottom-color: var(--yes-red);
+            background: rgba(0, 76, 143, 0.05);
+        }
+
+        /* Branch Selector */
+        .branch-selector {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-gray);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .branch-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-gray);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            background: white;
+            min-width: 200px;
+        }
+
+        .branch-select:focus {
+            outline: none;
+            border-color: var(--yes-blue);
+        }
+
+        /* Summary Section */
+        .summary-section {
+            padding: 2rem;
+            background: white;
+            margin: 1rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .summary-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--yes-blue);
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            padding: 1rem;
+            background: var(--light-gray);
+            border-radius: 8px;
+            border-left: 4px solid var(--yes-blue);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--yes-blue);
+        }
+
+        /* Chart Grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            padding: 0 2rem 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .chart-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-gray);
+        }
+
+        .chart-subtitle {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .chart-container.small {
+            height: 250px;
+        }
+
+        /* Legend */
+        .custom-legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-gray);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Table View */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-gray);
+            vertical-align: middle;
+        }
+
+        .data-table th {
+            background: var(--light-gray);
+            font-weight: 600;
+            color: var(--yes-blue);
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 76, 143, 0.05);
+        }
+
+        .percentage-bar {
+            display: inline-block;
+            height: 20px;
+            border-radius: 2px;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .catchment-bar {
+            background: var(--yes-blue);
+        }
+
+        .footfall-bar {
+            background: var(--yes-red);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark-gray);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .kentrix-attribution {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kentrix-logo {
+            font-weight: bold;
+            color: #00CED1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs-container {
+                overflow-x: scroll;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,76,143,0.3);
+            border-radius: 50%;
+            border-top-color: var(--yes-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo-container">
+                    <span style="font-size: 24px; font-weight: bold; color: #004C8F;">YES BANK</span>
+                </div>
+                <h1 class="dashboard-title">Catchment vs Footfall Analytics Dashboard</h1>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('summary')">Summary - All Branches</button>
+            <button class="tab-button" onclick="switchTab('insights')">Strategic Insights</button>
+            <button class="tab-button" onclick="switchTab('income')">Income Distribution</button>
+            <button class="tab-button" onclick="switchTab('lifestyle')">Lifestyle Segmentation</button>
+            <button class="tab-button" onclick="switchTab('distance')">Distance Analysis</button>
+            <button class="tab-button" onclick="switchTab('savings')">Insurance: Savings Plan</button>
+            <button class="tab-button" onclick="switchTab('retirement')">Insurance: Retirement Plan</button>
+            <button class="tab-button" onclick="switchTab('ulip')">Insurance: ULIP</button>
+            <button class="tab-button" onclick="switchTab('mutual')">Mutual Funds</button>
+            <button class="tab-button" onclick="switchTab('fd')">Fixed Deposits</button>
+            <button class="tab-button" onclick="switchTab('credit')">Credit Card Usage</button>
+        </div>
+    </nav>
+
+    <!-- Branch Selector -->
+    <div class="branch-selector">
+        <label for="branchSelect" style="font-weight: 600;">Select Branch:</label>
+        <select id="branchSelect" class="branch-select" onchange="updateBranchView()">
+            <option value="all">All Branches Combined</option>
+            <option value="banashankari">Banashankari, Bangalore</option>
+            <option value="jayanagar">Jaya Nagar, Bangalore</option>
+            <option value="boardcolony">Board Colony, Bhopal</option>
+            <option value="mpnagar">MP Nagar, Bhopal</option>
+            <option value="punjabibagh">Punjabi Bagh, Delhi</option>
+            <option value="vishalenclave">Vishal Enclave, Delhi</option>
+            <option value="laxminarayan">Laxmi Narayan Building, Mumbai</option>
+            <option value="shrikant">Shrikant Chambers, Mumbai</option>
+            <option value="villa">Villa Geraldine, Mumbai</option>
+            <option value="marketyard">Market Yard, Pune</option>
+            <option value="tilakroad">Tilak Road, Pune</option>
+        </select>
+    </div>
+
+    <!-- Tab Content: Strategic Insights -->
+    <div id="insights" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Strategic Insights & Imperatives</h2>
+            </div>
+            
+            <!-- Executive Summary -->
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; border-left: 4px solid var(--yes-red);">
+                <h3 style="color: var(--yes-blue); margin-bottom: 1rem;">Executive Summary</h3>
+                <p style="font-size: 1.1rem; line-height: 1.8;">
+                    Analysis of 11 Yes Bank locations reveals significant misalignment between catchment demographics and building footfall patterns. 
+                    With only <strong>6.6%</strong> of catchment population represented in building footfall, there exists substantial untapped market potential. 
+                    The most critical finding is the <strong>21.4%</strong> gap in Very Good income segment (₹1.7-2.3L) between catchment (32.4%) and footfall (11%), 
+                    indicating buildings are not attracting the affluent populations in their vicinity.
+                </p>
+            </div>
+
+            <!-- Key Findings Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+                
+                <!-- Income Segment Insights -->
+                <div class="dashboard-card" style="border-top: 4px solid var(--yes-blue);">
+                    <h3 style="color: var(--yes-blue); margin-bottom: 1rem;">💰 Income Segment Misalignment</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">Critical Gaps:</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>Very Good Income (₹1.7-2.3L):</strong><br>
+                                Catchment: 32.4% | Footfall: 11%<br>
+                                <span style="color: var(--yes-red); font-weight: bold;">Gap: -21.4%</span>
+                            </li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>Medium Good Income (₹80K-1.3L):</strong><br>
+                                Catchment: 16.8% | Footfall: 36%<br>
+                                <span style="color: #28A745; font-weight: bold;">Over-indexed: +19.2%</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div style="background: #f0f8ff; padding: 1rem; border-radius: 8px;">
+                        <strong>Implication:</strong> Buildings attract middle-income visitors but fail to engage high-income residents nearby.
+                    </div>
+                </div>
+
+                <!-- Product Affinity Insights -->
+                <div class="dashboard-card" style="border-top: 4px solid var(--yes-red);">
+                    <h3 style="color: var(--yes-blue); margin-bottom: 1rem;">📊 Product Penetration Gaps</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">Largest Opportunities:</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>ULIP:</strong><br>
+                                Catchment: 68% | Footfall: 15%<br>
+                                <span style="color: var(--yes-red); font-weight: bold;">Gap: -53%</span>
+                            </li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>Mutual Funds:</strong><br>
+                                Catchment: 79% | Footfall: 46%<br>
+                                <span style="color: var(--yes-red); font-weight: bold;">Gap: -33%</span>
+                            </li>
+                            <li style="padding: 0.5rem 0;">
+                                <strong>Fixed Deposits:</strong><br>
+                                Catchment: 65% | Footfall: 69%<br>
+                                <span style="color: #28A745; font-weight: bold;">Aligned: +4%</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div style="background: #fff5f5; padding: 1rem; border-radius: 8px;">
+                        <strong>Opportunity:</strong> Massive untapped demand for investment products, especially ULIPs and Mutual Funds.
+                    </div>
+                </div>
+
+                <!-- Geographic Insights -->
+                <div class="dashboard-card" style="border-top: 4px solid #17A2B8;">
+                    <h3 style="color: var(--yes-blue); margin-bottom: 1rem;">🗺️ Geographic Patterns</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">Distance Distribution:</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>47%</strong> travel >5km to buildings
+                            </li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>17%</strong> are within 1km radius
+                            </li>
+                            <li style="padding: 0.5rem 0;">
+                                <strong>36%</strong> are in 1-5km range
+                            </li>
+                        </ul>
+                    </div>
+                    <div style="background: #f0fff4; padding: 1rem; border-radius: 8px;">
+                        <strong>Insight:</strong> Buildings have strong pull beyond immediate vicinity but underserve local high-value residents.
+                    </div>
+                </div>
+
+                <!-- Lifestyle Segment Insights -->
+                <div class="dashboard-card" style="border-top: 4px solid #28A745;">
+                    <h3 style="color: var(--yes-blue); margin-bottom: 1rem;">👥 Lifestyle Segmentation</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">Key Mismatches:</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                <strong>New Wealth:</strong><br>
+                                Catchment: 33% | Footfall: 14%<br>
+                                <span style="color: var(--yes-red); font-weight: bold;">Gap: -19%</span>
+                            </li>
+                            <li style="padding: 0.5rem 0;">
+                                <strong>Conservative Middle:</strong><br>
+                                Catchment: 16% | Footfall: 25%<br>
+                                <span style="color: #28A745; font-weight: bold;">Over-indexed: +9%</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div style="background: #fffbf0; padding: 1rem; border-radius: 8px;">
+                        <strong>Pattern:</strong> Buildings attract conservative segments but miss new wealth opportunities.
+                    </div>
+                </div>
+            </div>
+
+            <!-- City-wise Analysis -->
+            <div class="dashboard-card" style="margin-bottom: 2rem;">
+                <h3 style="color: var(--yes-blue); margin-bottom: 1.5rem;">🏙️ City-wise Performance Analysis</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="color: var(--yes-blue); margin-bottom: 0.5rem;">Bangalore</h4>
+                        <ul style="font-size: 0.9rem; list-style: none; padding: 0;">
+                            <li>✅ Highest affluent catchment (56-61% Very Good)</li>
+                            <li>✅ Strong mutual fund affinity (72-73%)</li>
+                            <li>⚠️ Low ULIP penetration despite high income</li>
+                        </ul>
+                    </div>
+
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="color: var(--yes-blue); margin-bottom: 0.5rem;">Mumbai</h4>
+                        <ul style="font-size: 0.9rem; list-style: none; padding: 0;">
+                            <li>✅ Highest footfall volumes (4540, 2963)</li>
+                            <li>⚠️ Medium Low income dominates (20-24%)</li>
+                            <li>⚠️ Credit card usage gaps significant</li>
+                        </ul>
+                    </div>
+
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="color: var(--yes-blue); margin-bottom: 0.5rem;">Delhi</h4>
+                        <ul style="font-size: 0.9rem; list-style: none; padding: 0;">
+                            <li>✅ Balanced income distribution</li>
+                            <li>✅ High Urban Elite in Punjabi Bagh (65%)</li>
+                            <li>⚠️ Product affinity below potential</li>
+                        </ul>
+                    </div>
+
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="color: var(--yes-blue); margin-bottom: 0.5rem;">Bhopal</h4>
+                        <ul style="font-size: 0.9rem; list-style: none; padding: 0;">
+                            <li>⚠️ Lowest ULIP affinity (1-2%)</li>
+                            <li>⚠️ Low mutual fund penetration (14-24%)</li>
+                            <li>✅ Opportunity for basic banking products</li>
+                        </ul>
+                    </div>
+
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="color: var(--yes-blue); margin-bottom: 0.5rem;">Pune</h4>
+                        <ul style="font-size: 0.9rem; list-style: none; padding: 0;">
+                            <li>✅ Good footfall at Tilak Road (3691)</li>
+                            <li>✅ Balanced product affinity</li>
+                            <li>⚠️ Income segment opportunities exist</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strategic Imperatives -->
+            <div class="dashboard-card" style="background: linear-gradient(135deg, #4A90E2 0%, #5BA0F2 100%); color: white; padding: 2rem;">
+                <h3 style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center;">
+                    <span style="color: #FFD700; margin-right: 0.5rem;">🎯</span> Strategic Imperatives
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2.5rem; row-gap: 2rem;">
+                    
+                    <div style="display: flex; flex-direction: column;">
+                        <h4 style="color: #FFD700; margin-bottom: 0.5rem; text-align: left; font-size: 1rem;">1. Affluent Segment Activation</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.5; text-align: left; margin: 0;">
+                            Develop targeted campaigns for Very Good income segment (₹1.7-2.3L) who represent 32.4% of catchment but only 11% of footfall. Focus on Bangalore and Delhi locations with highest affluent concentration.
+                        </p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column;">
+                        <h4 style="color: #FFD700; margin-bottom: 0.5rem; text-align: left; font-size: 1rem;">2. Investment Product Push</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.5; text-align: left; margin: 0;">
+                            Launch aggressive ULIP and Mutual Fund campaigns - 53% and 33% gaps respectively between catchment affinity and actual adoption. Prioritize Bangalore and Mumbai for immediate impact.
+                        </p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column;">
+                        <h4 style="color: #FFD700; margin-bottom: 0.5rem; text-align: left; font-size: 1rem;">3. Hyperlocal Engagement</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.5; text-align: left; margin: 0;">
+                            83% of footfall comes from beyond 1km. Implement hyperlocal marketing for <1km radius residents, especially targeting high-income households in immediate vicinity.
+                        </p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column;">
+                        <h4 style="color: #FFD700; margin-bottom: 0.5rem; text-align: left; font-size: 1rem;">4. City-Specific Strategies</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.5; text-align: left; margin: 0;">
+                            <strong>Bangalore:</strong> Premium products | <strong>Mumbai:</strong> Volume play | <strong>Delhi:</strong> Lifestyle banking | <strong>Bhopal:</strong> Financial literacy | <strong>Pune:</strong> Balanced growth
+                        </p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column;">
+                        <h4 style="color: #FFD700; margin-bottom: 0.5rem; text-align: left; font-size: 1rem;">5. New Wealth Acquisition</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.5; text-align: left; margin: 0;">
+                            Target "Urban New Wealth" segment showing 19% gap. This digitally-savvy, aspirational segment represents 33% of catchment but only 14% of footfall.
+                        </p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column;">
+                        <h4 style="color: #FFD700; margin-bottom: 0.5rem; text-align: left; font-size: 1rem;">6. Product Mix Optimization</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.5; text-align: left; margin: 0;">
+                            Realign branch product focus: High ULIP/MF in Bangalore, Credit cards in Mumbai, Retirement plans across all locations (10% gap).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROI Opportunities -->
+            <div class="dashboard-card" style="margin-top: 2rem; border: 2px solid var(--yes-red);">
+                <h3 style="color: var(--yes-red); margin-bottom: 1rem; display: flex; align-items: center;">
+                    <span style="margin-right: 0.5rem;">💡</span> Highest ROI Opportunities
+                </h3>
+                <ol style="font-size: 1rem; line-height: 2; padding-left: 1.5rem;">
+                    <li style="margin-bottom: 0.5rem;"><strong>Bangalore locations:</strong> Convert 56-61% Very Good income catchment into customers - potential 3x footfall increase</li>
+                    <li style="margin-bottom: 0.5rem;"><strong>ULIP campaigns:</strong> Bridge 53% gap could double ULIP portfolio across branches</li>
+                    <li style="margin-bottom: 0.5rem;"><strong>1km radius activation:</strong> Converting just 10% more local catchment = 42,000+ new customers</li>
+                    <li style="margin-bottom: 0.5rem;"><strong>Mumbai credit cards:</strong> Align with 59-76% catchment affinity vs 44-50% current</li>
+                    <li style="margin-bottom: 0.5rem;"><strong>Bhopal financial inclusion:</strong> Massive untapped market for basic products</li>
+                </ol>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Tab Content: Summary -->
+    <div id="summary" class="tab-content active">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Combined Analysis - All Branches</h2>
+            </div>
+            
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Catchment Population</div>
+                    <div class="stat-value">420,313</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Building Footfall</div>
+                    <div class="stat-value">27,680</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Footfall/Catchment Ratio</div>
+                    <div class="stat-value">6.6%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Branches Analyzed</div>
+                    <div class="stat-value">11</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Income Distribution Comparison</h3>
+                    <p class="chart-subtitle">All Branches Combined - Catchment vs Footfall</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="summaryIncomeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Product Affinity Overview</h3>
+                    <p class="chart-subtitle">All Branches Combined - % with Product Affinity</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="summaryProductChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Lifestyle Segmentation</h3>
+                    <p class="chart-subtitle">All Branches Combined - Catchment vs Footfall</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="summaryLifestyleChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Distance Distribution</h3>
+                    <p class="chart-subtitle">All Branches - Travel Distance Pattern</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="summaryDistanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Credit Card Usage Categories</h3>
+                    <p class="chart-subtitle">All Branches Combined - Catchment vs Footfall</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="summaryCreditChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Income Distribution -->
+    <div id="income" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Income Distribution Analysis</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Income Segments - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Percentage distribution across all branches</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="incomeDetailChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" style="padding: 2rem;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--yes-blue);">Branch-wise Income Distribution Comparison</h3>
+                <table class="data-table" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Branch</th>
+                            <th style="width: 10.5%;">Low<br>&lt;₹20K</th>
+                            <th style="width: 10.5%;">Medium Low<br>₹20-40K</th>
+                            <th style="width: 10.5%;">Medium<br>₹40-80K</th>
+                            <th style="width: 10.5%;">Medium Good<br>₹80K-1.3L</th>
+                            <th style="width: 10.5%;">Good<br>₹1.3-1.7L</th>
+                            <th style="width: 10.5%;">Very Good<br>₹1.7-2.3L</th>
+                            <th style="width: 10.5%;">High<br>₹2.3-3L</th>
+                            <th style="width: 10.5%;">Very High<br>&gt;₹3L</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incomeTableBody">
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Lifestyle Segmentation -->
+    <div id="lifestyle" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Lifestyle Segmentation Analysis</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Lifestyle Segments - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Distribution across all branches</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="lifestyleDetailChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" style="padding: 2rem;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--yes-blue);">Branch-wise Lifestyle Segmentation Comparison</h3>
+                <table class="data-table" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Branch</th>
+                            <th style="width: 12%;">Urban Elite</th>
+                            <th style="width: 12%;">New Wealth</th>
+                            <th style="width: 12%;">Aspiring Middle</th>
+                            <th style="width: 13%;">Conservative Middle</th>
+                            <th style="width: 12%;">Fast Climbers</th>
+                            <th style="width: 12%;">Upcoming Climbers</th>
+                            <th style="width: 12%;">Urban Dependants</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lifestyleTableBody">
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Distance Analysis -->
+    <div id="distance" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Distance Analysis</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Travel Distance Distribution</h3>
+                        <p class="chart-subtitle">How far people travel to reach buildings</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="distanceDetailChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Insurance Savings Plan -->
+    <div id="savings" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Insurance: Savings Plan Affinity</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Savings Plan Affinity - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Percentage with savings plan affinity</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="savingsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Insurance Retirement Plan -->
+    <div id="retirement" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Insurance: Retirement Plan Affinity</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Retirement Plan Affinity - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Percentage with retirement plan affinity</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="retirementChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: ULIP -->
+    <div id="ulip" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Insurance: ULIP Affinity</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">ULIP Affinity - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Percentage with ULIP affinity</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ulipChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Mutual Funds -->
+    <div id="mutual" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Mutual Funds Affinity</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Mutual Funds Affinity - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Percentage with mutual funds affinity</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="mutualChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Fixed Deposits -->
+    <div id="fd" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Fixed Deposit Affinity</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Fixed Deposit Affinity - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Percentage with FD affinity</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="fdChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Credit Card -->
+    <div id="credit" class="tab-content">
+        <div class="summary-section">
+            <div class="summary-header">
+                <h2 class="summary-title">Credit Card Usage Patterns</h2>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Credit Card Usage Categories - Catchment vs Footfall</h3>
+                        <p class="chart-subtitle">Comparison of Heavy, Moderate, and Rare Usage across all branches</p>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="creditChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-section" style="margin-top: 2rem;">
+                <h3 style="color: var(--yes-blue); margin-bottom: 1rem;">Key Insights</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid var(--yes-blue);">
+                        <h4 style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">Overall Usage Pattern</h4>
+                        <p style="font-size: 0.9rem;">Catchment shows 59% heavy usage potential vs 40% actual footfall heavy usage - indicating untapped credit card opportunities</p>
+                    </div>
+                    <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid var(--yes-red);">
+                        <h4 style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">Highest Potential</h4>
+                        <p style="font-size: 0.9rem;">Mumbai and Bangalore locations show highest credit card affinity gaps between catchment and footfall</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="kentrix-attribution">
+                <span>Powered by</span>
+                <span class="kentrix-logo" style="color: #00CED1; font-weight: bold;">KENTRIX</span>
+            </div>
+            <div>
+                <span>Data Analytics Platform</span>
+            </div>
+            <div>
+                <span>Contact: info@kentrix.in</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Data structure for all branches
+        const branchData = {
+            all: {
+                name: 'All Branches Combined',
+                catchment: 420313,
+                footfall: 27680,
+                income: {
+                    catchment: [1.8, 8.1, 12.4, 16.8, 19.7, 32.4, 8.3, 0.5],
+                    footfall: [2, 8, 19, 36, 16, 11, 6, 3]
+                },
+                lifestyle: {
+                    catchment: [16, 33, 10, 16, 6, 5, 13],
+                    footfall: [18, 14, 14, 25, 8, 13, 8]
+                },
+                distance: [17, 10, 10, 15, 47],
+                products: {
+                    savings: { catchment: 86, footfall: 66 },
+                    retirement: { catchment: 81, footfall: 71 },
+                    ulip: { catchment: 68, footfall: 15 },
+                    mutual: { catchment: 79, footfall: 46 },
+                    fd: { catchment: 65, footfall: 69 },
+                    credit: {
+                        catchment: { rare: 7, moderate: 18, heavy: 59, no: 16 },
+                        footfall: { rare: 18, moderate: 25, heavy: 40, no: 17 }
+                    }
+                }
+            },
+            banashankari: {
+                name: 'Banashankari, Bangalore',
+                catchment: 76352,
+                footfall: 2339,
+                income: {
+                    catchment: [0, 0, 1, 18, 25, 56, 0, 0],
+                    footfall: [0, 0, 5, 48, 27, 16, 2, 2]
+                },
+                lifestyle: {
+                    catchment: [28, 58, 2, 9, 1, 2, 0],
+                    footfall: [20, 29, 18, 29, 3, 2, 0]
+                },
+                distance: [13, 18, 11, 14, 45],
+                products: {
+                    savings: { catchment: 100, footfall: 90 },
+                    retirement: { catchment: 100, footfall: 92 },
+                    ulip: { catchment: 96, footfall: 21 },
+                    mutual: { catchment: 98, footfall: 73 },
+                    fd: { catchment: 87, footfall: 95 },
+                    credit: {
+                        catchment: { rare: 0, moderate: 25, heavy: 72, no: 2 },
+                        footfall: { rare: 6, moderate: 37, heavy: 55, no: 2 }
+                    }
+                }
+            },
+            jayanagar: {
+                name: 'Jaya Nagar, Bangalore',
+                catchment: 48401,
+                footfall: 1797,
+                income: {
+                    catchment: [0, 0, 4, 13, 22, 61, 0, 0],
+                    footfall: [0, 0, 5, 44, 18, 16, 12, 4]
+                },
+                lifestyle: {
+                    catchment: [24, 61, 6, 1, 4, 3, 0],
+                    footfall: [19, 34, 21, 21, 3, 3, 0]
+                },
+                distance: [16, 8, 13, 19, 44],
+                products: {
+                    savings: { catchment: 100, footfall: 74 },
+                    retirement: { catchment: 97, footfall: 88 },
+                    ulip: { catchment: 87, footfall: 31 },
+                    mutual: { catchment: 97, footfall: 72 },
+                    fd: { catchment: 85, footfall: 94 },
+                    credit: {
+                        catchment: { rare: 3, moderate: 11, heavy: 83, no: 3 },
+                        footfall: { rare: 7, moderate: 35, heavy: 56, no: 2 }
+                    }
+                }
+            },
+            boardcolony: {
+                name: 'Board Colony, Bhopal',
+                catchment: 32786,
+                footfall: 1991,
+                income: {
+                    catchment: [6, 2, 28, 32, 32, 0, 0, 0],
+                    footfall: [3, 3, 21, 55, 16, 2, 1, 0]
+                },
+                lifestyle: {
+                    catchment: [10, 37, 9, 19, 4, 9, 12],
+                    footfall: [4, 9, 12, 45, 12, 13, 3]
+                },
+                distance: [11, 8, 13, 23, 46],
+                products: {
+                    savings: { catchment: 88, footfall: 67 },
+                    retirement: { catchment: 79, footfall: 75 },
+                    ulip: { catchment: 52, footfall: 2 },
+                    mutual: { catchment: 58, footfall: 24 },
+                    fd: { catchment: 33, footfall: 64 },
+                    credit: {
+                        catchment: { rare: 29, moderate: 24, heavy: 26, no: 21 },
+                        footfall: { rare: 37, moderate: 36, heavy: 11, no: 15 }
+                    }
+                }
+            },
+            mpnagar: {
+                name: 'MP Nagar, Bhopal',
+                catchment: 23139,
+                footfall: 1656,
+                income: {
+                    catchment: [24, 0, 26, 28, 23, 0, 0, 0],
+                    footfall: [3, 3, 23, 61, 8, 1, 0, 0]
+                },
+                lifestyle: {
+                    catchment: [0, 10, 13, 44, 4, 4, 26],
+                    footfall: [2, 5, 15, 50, 12, 11, 3]
+                },
+                distance: [17, 5, 11, 17, 50],
+                products: {
+                    savings: { catchment: 74, footfall: 66 },
+                    retirement: { catchment: 70, footfall: 77 },
+                    ulip: { catchment: 33, footfall: 1 },
+                    mutual: { catchment: 47, footfall: 14 },
+                    fd: { catchment: 29, footfall: 62 },
+                    credit: {
+                        catchment: { rare: 47, moderate: 15, heavy: 7, no: 31 },
+                        footfall: { rare: 55, moderate: 26, heavy: 7, no: 12 }
+                    }
+                }
+            },
+            punjabibagh: {
+                name: 'Punjabi Bagh, Delhi',
+                catchment: 13595,
+                footfall: 3389,
+                income: {
+                    catchment: [0, 1, 20, 15, 0, 52, 7, 6],
+                    footfall: [1, 1, 26, 33, 12, 18, 6, 2]
+                },
+                lifestyle: {
+                    catchment: [65, 2, 5, 10, 16, 0, 1],
+                    footfall: [36, 5, 14, 16, 9, 19, 1]
+                },
+                distance: [18, 12, 10, 18, 43],
+                products: {
+                    savings: { catchment: 99, footfall: 75 },
+                    retirement: { catchment: 88, footfall: 80 },
+                    ulip: { catchment: 67, footfall: 10 },
+                    mutual: { catchment: 88, footfall: 48 },
+                    fd: { catchment: 66, footfall: 69 },
+                    credit: {
+                        catchment: { rare: 0, moderate: 35, heavy: 64, no: 1 },
+                        footfall: { rare: 15, moderate: 32, heavy: 41, no: 12 }
+                    }
+                }
+            },
+            vishalenclave: {
+                name: 'Vishal Enclave, Delhi',
+                catchment: 49095,
+                footfall: 2178,
+                income: {
+                    catchment: [0, 2, 30, 12, 26, 29, 0, 0],
+                    footfall: [1, 1, 29, 33, 22, 8, 4, 1]
+                },
+                lifestyle: {
+                    catchment: [21, 18, 10, 21, 4, 10, 17],
+                    footfall: [19, 17, 19, 14, 7, 24, 1]
+                },
+                distance: [25, 10, 12, 11, 41],
+                products: {
+                    savings: { catchment: 84, footfall: 78 },
+                    retirement: { catchment: 71, footfall: 81 },
+                    ulip: { catchment: 56, footfall: 17 },
+                    mutual: { catchment: 71, footfall: 42 },
+                    fd: { catchment: 56, footfall: 66 },
+                    credit: {
+                        catchment: { rare: 0, moderate: 30, heavy: 54, no: 16 },
+                        footfall: { rare: 19, moderate: 32, heavy: 37, no: 12 }
+                    }
+                }
+            },
+            laxminarayan: {
+                name: 'Laxmi Narayan Building, Mumbai',
+                catchment: 38654,
+                footfall: 4540,
+                income: {
+                    catchment: [0, 24, 5, 7, 10, 37, 17, 0],
+                    footfall: [3, 23, 14, 21, 16, 12, 5, 5]
+                },
+                lifestyle: {
+                    catchment: [0, 17, 22, 27, 7, 4, 24],
+                    footfall: [16, 13, 7, 22, 8, 12, 21]
+                },
+                distance: [16, 8, 8, 12, 55],
+                products: {
+                    savings: { catchment: 75, footfall: 49 },
+                    retirement: { catchment: 72, footfall: 54 },
+                    ulip: { catchment: 65, footfall: 15 },
+                    mutual: { catchment: 72, footfall: 44 },
+                    fd: { catchment: 69, footfall: 58 },
+                    credit: {
+                        catchment: { rare: 3, moderate: 3, heavy: 69, no: 25 },
+                        footfall: { rare: 13, moderate: 10, heavy: 44, no: 32 }
+                    }
+                }
+            },
+            shrikant: {
+                name: 'Shrikant Chambers, Mumbai',
+                catchment: 37540,
+                footfall: 2963,
+                income: {
+                    catchment: [0, 22, 19, 7, 9, 19, 22, 2],
+                    footfall: [3, 20, 15, 20, 14, 14, 8, 6]
+                },
+                lifestyle: {
+                    catchment: [0, 23, 16, 12, 13, 13, 23],
+                    footfall: [17, 17, 9, 19, 8, 11, 19]
+                },
+                distance: [11, 9, 10, 9, 61],
+                products: {
+                    savings: { catchment: 65, footfall: 50 },
+                    retirement: { catchment: 59, footfall: 55 },
+                    ulip: { catchment: 51, footfall: 20 },
+                    mutual: { catchment: 65, footfall: 48 },
+                    fd: { catchment: 55, footfall: 61 },
+                    credit: {
+                        catchment: { rare: 6, moderate: 2, heavy: 57, no: 35 },
+                        footfall: { rare: 15, moderate: 11, heavy: 46, no: 28 }
+                    }
+                }
+            },
+            villa: {
+                name: 'Villa Geraldine, Mumbai',
+                catchment: 41022,
+                footfall: 1356,
+                income: {
+                    catchment: [0, 20, 4, 3, 3, 25, 44, 0],
+                    footfall: [3, 24, 13, 14, 10, 8, 25, 2]
+                },
+                lifestyle: {
+                    catchment: [0, 44, 15, 13, 5, 2, 20],
+                    footfall: [8, 28, 5, 15, 7, 11, 25]
+                },
+                distance: [33, 20, 11, 11, 25],
+                products: {
+                    savings: { catchment: 80, footfall: 33 },
+                    retirement: { catchment: 76, footfall: 40 },
+                    ulip: { catchment: 73, footfall: 33 },
+                    mutual: { catchment: 78, footfall: 48 },
+                    fd: { catchment: 75, footfall: 57 },
+                    credit: {
+                        catchment: { rare: 4, moderate: 0, heavy: 76, no: 20 },
+                        footfall: { rare: 7, moderate: 7, heavy: 50, no: 35 }
+                    }
+                }
+            },
+            marketyard: {
+                name: 'Market Yard, Pune',
+                catchment: 39781,
+                footfall: 1780,
+                income: {
+                    catchment: [0, 14, 11, 25, 19, 27, 3, 1],
+                    footfall: [4, 1, 26, 32, 16, 12, 3, 7]
+                },
+                lifestyle: {
+                    catchment: [27, 24, 9, 8, 10, 5, 17],
+                    footfall: [24, 9, 13, 28, 6, 16, 4]
+                },
+                distance: [18, 10, 16, 21, 35],
+                products: {
+                    savings: { catchment: 81, footfall: 65 },
+                    retirement: { catchment: 76, footfall: 68 },
+                    ulip: { catchment: 58, footfall: 15 },
+                    mutual: { catchment: 77, footfall: 45 },
+                    fd: { catchment: 54, footfall: 70 },
+                    credit: {
+                        catchment: { rare: 5, moderate: 23, heavy: 51, no: 21 },
+                        footfall: { rare: 19, moderate: 26, heavy: 43, no: 11 }
+                    }
+                }
+            },
+            tilakroad: {
+                name: 'Tilak Road, Pune',
+                catchment: 19948,
+                footfall: 3691,
+                income: {
+                    catchment: [0, 5, 10, 45, 40, 0, 0, 0],
+                    footfall: [2, 1, 25, 47, 12, 8, 3, 1]
+                },
+                lifestyle: {
+                    catchment: [10, 18, 12, 41, 6, 7, 5],
+                    footfall: [18, 8, 19, 31, 10, 12, 2]
+                },
+                distance: [14, 11, 7, 17, 52],
+                products: {
+                    savings: { catchment: 91, footfall: 75 },
+                    retirement: { catchment: 85, footfall: 78 },
+                    ulip: { catchment: 54, footfall: 8 },
+                    mutual: { catchment: 85, footfall: 41 },
+                    fd: { catchment: 52, footfall: 72 },
+                    credit: {
+                        catchment: { rare: 8, moderate: 48, heavy: 39, no: 5 },
+                        footfall: { rare: 21, moderate: 30, heavy: 40, no: 9 }
+                    }
+                }
+            }
+        };
+
+        // Chart instances
+        let charts = {};
+
+        // Initialize all charts
+        function initializeCharts() {
+            // Summary Income Chart
+            createBarChart('summaryIncomeChart', 
+                ['Low\n(<₹20K)', 'Medium Low\n(₹20-40K)', 'Medium\n(₹40-80K)', 'Medium Good\n(₹80K-1.3L)', 'Good\n(₹1.3-1.7L)', 'Very Good\n(₹1.7-2.3L)', 'High\n(₹2.3-3L)', 'Very High\n(>₹3L)'],
+                branchData.all.income.catchment,
+                branchData.all.income.footfall,
+                'Income Distribution - All Branches'
+            );
+
+            // Summary Product Chart
+            createHorizontalBarChart('summaryProductChart',
+                ['Savings Plan', 'Retirement Plan', 'ULIP', 'Mutual Funds', 'Fixed Deposits'],
+                [
+                    branchData.all.products.savings.catchment,
+                    branchData.all.products.retirement.catchment,
+                    branchData.all.products.ulip.catchment,
+                    branchData.all.products.mutual.catchment,
+                    branchData.all.products.fd.catchment
+                ],
+                [
+                    branchData.all.products.savings.footfall,
+                    branchData.all.products.retirement.footfall,
+                    branchData.all.products.ulip.footfall,
+                    branchData.all.products.mutual.footfall,
+                    branchData.all.products.fd.footfall
+                ],
+                'Product Affinity Comparison'
+            );
+
+            // Summary Lifestyle Chart - Changed from Radar to Bar Chart
+            createBarChart('summaryLifestyleChart',
+                ['Urban Elite', 'New Wealth', 'Aspiring Middle', 'Conservative Middle', 'Fast Climbers', 'Upcoming Climbers', 'Urban Dependants'],
+                branchData.all.lifestyle.catchment,
+                branchData.all.lifestyle.footfall,
+                'Lifestyle Segmentation'
+            );
+
+            // Summary Distance Chart
+            createDoughnutChart('summaryDistanceChart',
+                ['< 1km', '1-2km', '2-3km', '3-5km', '> 5km'],
+                branchData.all.distance,
+                'Distance Distribution'
+            );
+
+            // Summary Credit Card Chart
+            createBarChart('summaryCreditChart',
+                ['Heavy Usage', 'Moderate Usage', 'Rare Usage', 'No Usage'],
+                [
+                    branchData.all.products.credit.catchment.heavy,
+                    branchData.all.products.credit.catchment.moderate,
+                    branchData.all.products.credit.catchment.rare,
+                    branchData.all.products.credit.catchment.no
+                ],
+                [
+                    branchData.all.products.credit.footfall.heavy,
+                    branchData.all.products.credit.footfall.moderate,
+                    branchData.all.products.credit.footfall.rare,
+                    branchData.all.products.credit.footfall.no
+                ],
+                'Credit Card Usage Categories'
+            );
+
+            // Initialize detailed charts for other tabs
+            initializeDetailedCharts();
+        }
+
+        // Create bar chart with vertical grouping
+        function createBarChart(canvasId, labels, catchmentData, footfallData, title) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Catchment %',
+                        data: catchmentData,
+                        backgroundColor: 'rgba(0, 76, 143, 0.8)',
+                        borderColor: '#004C8F',
+                        borderWidth: 1,
+                        barPercentage: 0.8,
+                        categoryPercentage: 0.9
+                    }, {
+                        label: 'Footfall %',
+                        data: footfallData,
+                        backgroundColor: 'rgba(238, 39, 55, 0.8)',
+                        borderColor: '#EE2737',
+                        borderWidth: 1,
+                        barPercentage: 0.8,
+                        categoryPercentage: 0.9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Percentage %'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create horizontal bar chart
+        function createHorizontalBarChart(canvasId, labels, catchmentData, footfallData, title) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Catchment %',
+                        data: catchmentData,
+                        backgroundColor: 'rgba(0, 76, 143, 0.7)',
+                        borderColor: '#004C8F',
+                        borderWidth: 1
+                    }, {
+                        label: 'Footfall %',
+                        data: footfallData,
+                        backgroundColor: 'rgba(238, 39, 55, 0.7)',
+                        borderColor: '#EE2737',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create radar chart
+        function createRadarChart(canvasId, labels, catchmentData, footfallData, title) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Catchment %',
+                        data: catchmentData,
+                        backgroundColor: 'rgba(0, 76, 143, 0.2)',
+                        borderColor: '#004C8F',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#004C8F'
+                    }, {
+                        label: 'Footfall %',
+                        data: footfallData,
+                        backgroundColor: 'rgba(238, 39, 55, 0.2)',
+                        borderColor: '#EE2737',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#EE2737'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 40
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create doughnut chart
+        function createDoughnutChart(canvasId, labels, data, title) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#004C8F',
+                            '#0066CC',
+                            '#3399FF',
+                            '#17A2B8',
+                            '#28A745'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize detailed charts for tabs
+        function initializeDetailedCharts() {
+            // Get current branch selection
+            const branchSelect = document.getElementById('branchSelect').value;
+            const currentData = branchData[branchSelect] || branchData.all;
+
+            // Income Detail Chart
+            createBarChart('incomeDetailChart',
+                ['Low\n(<₹20K)', 'Medium Low\n(₹20-40K)', 'Medium\n(₹40-80K)', 'Medium Good\n(₹80K-1.3L)', 'Good\n(₹1.3-1.7L)', 'Very Good\n(₹1.7-2.3L)', 'High\n(₹2.3-3L)', 'Very High\n(>₹3L)'],
+                currentData.income.catchment,
+                currentData.income.footfall,
+                'Income Distribution'
+            );
+
+            // Lifestyle Detail Chart - Changed from Radar to Bar Chart
+            createBarChart('lifestyleDetailChart',
+                ['Urban Elite', 'New Wealth', 'Aspiring Middle', 'Conservative Middle', 'Fast Climbers', 'Upcoming Climbers', 'Urban Dependants'],
+                currentData.lifestyle.catchment,
+                currentData.lifestyle.footfall,
+                'Lifestyle Segmentation'
+            );
+
+            // Distance Detail Chart
+            createBarChart('distanceDetailChart',
+                ['< 1km', '1-2km', '2-3km', '3-5km', '> 5km'],
+                currentData.distance,
+                currentData.distance,
+                'Distance Distribution'
+            );
+
+            // Product Charts
+            const branches = ['Banashankari', 'Jaya Nagar', 'Board Colony', 'MP Nagar', 'Punjabi Bagh', 
+                            'Vishal Enclave', 'Laxmi Narayan', 'Shrikant', 'Villa Geraldine', 
+                            'Market Yard', 'Tilak Road'];
+
+            // Savings Plan Chart
+            createGroupedBarChart('savingsChart', branches, 'savings');
+            
+            // Retirement Plan Chart
+            createGroupedBarChart('retirementChart', branches, 'retirement');
+            
+            // ULIP Chart
+            createGroupedBarChart('ulipChart', branches, 'ulip');
+            
+            // Mutual Funds Chart
+            createGroupedBarChart('mutualChart', branches, 'mutual');
+            
+            // Fixed Deposits Chart
+            createGroupedBarChart('fdChart', branches, 'fd');
+            
+            // Credit Card Chart
+            createCreditCardChart('creditChart', branches);
+        }
+
+        // Create grouped bar chart for products
+        function createGroupedBarChart(canvasId, branches, productType) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+
+            const catchmentData = [];
+            const footfallData = [];
+            
+            const branchKeys = ['banashankari', 'jayanagar', 'boardcolony', 'mpnagar', 'punjabibagh', 
+                               'vishalenclave', 'laxminarayan', 'shrikant', 'villa', 'marketyard', 'tilakroad'];
+            
+            branchKeys.forEach(key => {
+                if (branchData[key] && branchData[key].products[productType]) {
+                    catchmentData.push(branchData[key].products[productType].catchment);
+                    footfallData.push(branchData[key].products[productType].footfall);
+                }
+            });
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: branches,
+                    datasets: [{
+                        label: 'Catchment %',
+                        data: catchmentData,
+                        backgroundColor: 'rgba(0, 76, 143, 0.7)',
+                        borderColor: '#004C8F',
+                        borderWidth: 1
+                    }, {
+                        label: 'Footfall %',
+                        data: footfallData,
+                        backgroundColor: 'rgba(238, 39, 55, 0.7)',
+                        borderColor: '#EE2737',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create credit card usage chart with catchment and footfall comparison
+        function createCreditCardChart(canvasId, branches) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+
+            const branchKeys = ['banashankari', 'jayanagar', 'boardcolony', 'mpnagar', 'punjabibagh', 
+                               'vishalenclave', 'laxminarayan', 'shrikant', 'villa', 'marketyard', 'tilakroad'];
+            
+            // Prepare data for catchment and footfall
+            const datasets = [];
+            
+            // Catchment data
+            const catchmentHeavy = [];
+            const catchmentModerate = [];
+            const catchmentRare = [];
+            
+            // Footfall data
+            const footfallHeavy = [];
+            const footfallModerate = [];
+            const footfallRare = [];
+            
+            branchKeys.forEach(key => {
+                if (branchData[key] && branchData[key].products.credit) {
+                    // Catchment
+                    catchmentHeavy.push(branchData[key].products.credit.catchment.heavy);
+                    catchmentModerate.push(branchData[key].products.credit.catchment.moderate);
+                    catchmentRare.push(branchData[key].products.credit.catchment.rare);
+                    
+                    // Footfall
+                    footfallHeavy.push(branchData[key].products.credit.footfall.heavy);
+                    footfallModerate.push(branchData[key].products.credit.footfall.moderate);
+                    footfallRare.push(branchData[key].products.credit.footfall.rare);
+                }
+            });
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: branches,
+                    datasets: [
+                        {
+                            label: 'Catchment - Heavy %',
+                            data: catchmentHeavy,
+                            backgroundColor: 'rgba(0, 76, 143, 0.9)',
+                            borderColor: '#004C8F',
+                            borderWidth: 1,
+                            stack: 'catchment'
+                        },
+                        {
+                            label: 'Catchment - Moderate %',
+                            data: catchmentModerate,
+                            backgroundColor: 'rgba(0, 76, 143, 0.6)',
+                            borderColor: '#004C8F',
+                            borderWidth: 1,
+                            stack: 'catchment'
+                        },
+                        {
+                            label: 'Catchment - Rare %',
+                            data: catchmentRare,
+                            backgroundColor: 'rgba(0, 76, 143, 0.3)',
+                            borderColor: '#004C8F',
+                            borderWidth: 1,
+                            stack: 'catchment'
+                        },
+                        {
+                            label: 'Footfall - Heavy %',
+                            data: footfallHeavy,
+                            backgroundColor: 'rgba(238, 39, 55, 0.9)',
+                            borderColor: '#EE2737',
+                            borderWidth: 1,
+                            stack: 'footfall'
+                        },
+                        {
+                            label: 'Footfall - Moderate %',
+                            data: footfallModerate,
+                            backgroundColor: 'rgba(238, 39, 55, 0.6)',
+                            borderColor: '#EE2737',
+                            borderWidth: 1,
+                            stack: 'footfall'
+                        },
+                        {
+                            label: 'Footfall - Rare %',
+                            data: footfallRare,
+                            backgroundColor: 'rgba(238, 39, 55, 0.3)',
+                            borderColor: '#EE2737',
+                            borderWidth: 1,
+                            stack: 'footfall'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Percentage %'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Switch tab function
+        function switchTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Reinitialize charts for the active tab
+            setTimeout(() => {
+                if (tabName === 'summary') {
+                    initializeCharts();
+                } else {
+                    initializeDetailedCharts();
+                }
+            }, 100);
+        }
+
+        // Update branch view
+        function updateBranchView() {
+            const selectedBranch = document.getElementById('branchSelect').value;
+            const currentData = branchData[selectedBranch] || branchData.all;
+            
+            // Update all charts with new data
+            initializeCharts();
+            initializeDetailedCharts();
+            
+            // Update tables if needed
+            updateTables(selectedBranch);
+        }
+
+        // Update tables
+        function updateTables(branch) {
+            // Update income table
+            const incomeTableBody = document.getElementById('incomeTableBody');
+            if (incomeTableBody) {
+                incomeTableBody.innerHTML = '';
+                
+                if (branch === 'all') {
+                    // Show all branches
+                    Object.keys(branchData).forEach(key => {
+                        if (key !== 'all') {
+                            const row = createTableRow(branchData[key], 'income');
+                            incomeTableBody.appendChild(row);
+                        }
+                    });
+                } else {
+                    // Show selected branch
+                    const row = createTableRow(branchData[branch], 'income');
+                    incomeTableBody.appendChild(row);
+                }
+            }
+            
+            // Update lifestyle table
+            const lifestyleTableBody = document.getElementById('lifestyleTableBody');
+            if (lifestyleTableBody) {
+                lifestyleTableBody.innerHTML = '';
+                
+                if (branch === 'all') {
+                    Object.keys(branchData).forEach(key => {
+                        if (key !== 'all') {
+                            const row = createTableRow(branchData[key], 'lifestyle');
+                            lifestyleTableBody.appendChild(row);
+                        }
+                    });
+                } else {
+                    const row = createTableRow(branchData[branch], 'lifestyle');
+                    lifestyleTableBody.appendChild(row);
+                }
+            }
+        }
+
+        // Create table row with vertical bar visualization
+        function createTableRow(data, type) {
+            const row = document.createElement('tr');
+            
+            if (type === 'income') {
+                const createBarCell = (catchment, footfall) => {
+                    const maxVal = Math.max(catchment, footfall);
+                    const scale = maxVal > 0 ? 100 / maxVal : 1;
+                    return `
+                        <td style="padding: 8px 4px; vertical-align: middle;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <div style="background: #004C8F; height: 20px; width: ${catchment * scale * 0.8}%; max-width: 90%; border-radius: 2px;"></div>
+                                    <span style="margin-left: 4px; font-size: 11px; min-width: 30px;">${catchment}%</span>
+                                </div>
+                                <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <div style="background: #EE2737; height: 20px; width: ${footfall * scale * 0.8}%; max-width: 90%; border-radius: 2px;"></div>
+                                    <span style="margin-left: 4px; font-size: 11px; min-width: 30px;">${footfall}%</span>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                };
+                
+                row.innerHTML = `
+                    <td style="font-weight: 600; font-size: 12px; padding: 8px;">${data.name.split(',')[0]}</td>
+                    ${createBarCell(data.income.catchment[0], data.income.footfall[0])}
+                    ${createBarCell(data.income.catchment[1], data.income.footfall[1])}
+                    ${createBarCell(data.income.catchment[2], data.income.footfall[2])}
+                    ${createBarCell(data.income.catchment[3], data.income.footfall[3])}
+                    ${createBarCell(data.income.catchment[4], data.income.footfall[4])}
+                    ${createBarCell(data.income.catchment[5], data.income.footfall[5])}
+                    ${createBarCell(data.income.catchment[6], data.income.footfall[6])}
+                    ${createBarCell(data.income.catchment[7], data.income.footfall[7])}
+                `;
+            } else if (type === 'lifestyle') {
+                const createBarCell = (catchment, footfall) => {
+                    const maxVal = Math.max(catchment, footfall);
+                    const scale = maxVal > 0 ? 100 / maxVal : 1;
+                    return `
+                        <td style="padding: 8px 4px; vertical-align: middle;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <div style="background: #004C8F; height: 20px; width: ${catchment * scale * 0.8}%; max-width: 90%; border-radius: 2px;"></div>
+                                    <span style="margin-left: 4px; font-size: 11px; min-width: 30px;">${catchment}%</span>
+                                </div>
+                                <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <div style="background: #EE2737; height: 20px; width: ${footfall * scale * 0.8}%; max-width: 90%; border-radius: 2px;"></div>
+                                    <span style="margin-left: 4px; font-size: 11px; min-width: 30px;">${footfall}%</span>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                };
+                
+                row.innerHTML = `
+                    <td style="font-weight: 600; font-size: 12px; padding: 8px;">${data.name.split(',')[0]}</td>
+                    ${createBarCell(data.lifestyle.catchment[0], data.lifestyle.footfall[0])}
+                    ${createBarCell(data.lifestyle.catchment[1], data.lifestyle.footfall[1])}
+                    ${createBarCell(data.lifestyle.catchment[2], data.lifestyle.footfall[2])}
+                    ${createBarCell(data.lifestyle.catchment[3], data.lifestyle.footfall[3])}
+                    ${createBarCell(data.lifestyle.catchment[4], data.lifestyle.footfall[4])}
+                    ${createBarCell(data.lifestyle.catchment[5], data.lifestyle.footfall[5])}
+                    ${createBarCell(data.lifestyle.catchment[6], data.lifestyle.footfall[6])}
+                `;
+            }
+            
+            return row;
+        }
+
+    </script>
+</body>
+</html>
